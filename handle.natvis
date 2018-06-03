@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+<Type Name="Handle&lt;*&gt;">
+  <DisplayString Condition="m_intVal == kInvalid">
+    Invalid
+  </DisplayString>
+  <DisplayString Condition="m_intVal != kInvalid &amp;&amp; s_pool.m_nodeBuffer[m_intVal &amp; s_pool.kIndexMask].m_version != (m_intVal &gt;&gt; s_pool.kIndexNumBits)">
+    Invalid
+  </DisplayString>
+  <DisplayString Condition="m_intVal != kInvalid &amp;&amp; s_pool.m_nodeBuffer[m_intVal &amp; s_pool.kIndexMask].m_version == (m_intVal &gt;&gt; s_pool.kIndexNumBits)">
+    { s_pool.m_nodeBuffer[m_intVal &amp; s_pool.kIndexMask].m_value }
+  </DisplayString>
+  <Expand>
+    <Item Name="[handle]">m_intVal, x</Item>
+    <Item Name="[value]" Condition="m_intVal != kInvalid &amp;&amp; s_pool.m_nodeBuffer[m_intVal &amp; s_pool.kIndexMask].m_version != (m_intVal &gt;&gt; s_pool.kIndexNumBits)">
+      nullptr
+    </Item>
+    <Item Name="[value]" Condition="m_intVal != kInvalid &amp;&amp; s_pool.m_nodeBuffer[m_intVal &amp; s_pool.kIndexMask].m_version == (m_intVal &gt;&gt; s_pool.kIndexNumBits)">
+      s_pool.m_nodeBuffer[m_intVal &amp; s_pool.kIndexMask].m_value
+    </Item>
+  </Expand>
+</Type>
+  
+
+</AutoVisualizer>
