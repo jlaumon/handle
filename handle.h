@@ -2,6 +2,7 @@
 
 // TODO add tests!
 // TODO make scalable implementation for freelist? also a free list isn't great because it reuses the same indices a lot and make the versions wrap around sooner
+// TODO add reserve
 
 #include <type_traits> // std::is_integral/std::is_unsigned/std::forward
 
@@ -54,9 +55,13 @@ public:
 	static const integer_type kInvalid = ~0;
 
 	template <class ... Args>
-	static this_type Create (Args&&... _args)   { return s_pool.create(std::forward<Args>(_args)...); }
-	static void      Destroy(this_type _handle) { s_pool.destroy(_handle); }
-	static T*        Get    (this_type _handle) { return s_pool.get(_handle);}
+	static this_type Create  (Args&&... _args)   { return s_pool.create(std::forward<Args>(_args)...); }
+	static void      Destroy (this_type _handle) { s_pool.destroy(_handle); }
+	static T*        Get     (this_type _handle) { return s_pool.get(_handle);}
+
+	static size_t    Size    ()                  { return s_pool.size(); }
+	static size_t    Capacity()                  { return s_pool.capacity(); }
+	static size_t    MaxSize ()                  { return s_pool.max_size(); }
 
 	Handle()                         : m_intVal(kInvalid) {}
 	Handle(const this_type& _handle) : m_intVal(_handle.m_intVal) {}
@@ -89,9 +94,13 @@ public:
 	this_type& operator= (this_type&) = delete;
 
 	template <class ... Args>
-	integer_type create (Args&&... _args);
-	bool         destroy(integer_type _handle);
-	T*           get    (integer_type _handle);
+	integer_type create  (Args&&... _args);
+	bool         destroy (integer_type _handle);
+	T*           get     (integer_type _handle);
+
+	size_t       size    () const { return m_handleCount; }
+	size_t       capacity() const { return MinSizeT(m_nodeBufferCapacityBytes / sizeof(Node), kMaxHandles); }
+	size_t       max_size() const { return kMaxHandles; }
 
 private:
 	static constexpr size_t MinSizeT(size_t _a, size_t _b) { return _a < _b ? _a : _b; } // Don't want to include <algorithm> just for std::min
