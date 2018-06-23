@@ -1,0 +1,6 @@
+*.vcxproj
+*.vcxproj.*
+*.sln
+.vs
+test/bin
+test/obj
