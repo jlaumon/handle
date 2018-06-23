@@ -3,6 +3,7 @@
 // TODO add tests!
 // TODO make scalable implementation for freelist? also a free list isn't great because it reuses the same indices a lot and make the versions wrap around sooner
 // TODO add reserve
+// TODO add doc
 
 #include <type_traits> // std::is_integral/std::is_unsigned/std::forward
 
@@ -63,6 +64,8 @@ public:
 	static size_t    Capacity()                  { return s_pool.capacity(); }
 	static size_t    MaxSize ()                  { return s_pool.max_size(); }
 
+	static void      Reset   ();
+
 	Handle()                         : m_intVal(kInvalid) {}
 	Handle(const this_type& _handle) : m_intVal(_handle.m_intVal) {}
 	Handle(integer_type _intVal)     : m_intVal(_intVal) {}
@@ -75,6 +78,14 @@ private:
 	
 	static HandlePool<T, IntegerType, MaxHandles> s_pool;
 };
+
+template <typename T, typename Tag, typename IntegerType, size_t MaxHandles>
+void Handle<T, Tag, IntegerType, MaxHandles>::Reset()
+{
+	// Call the destructor/constructor explicitely to destroy and recreate the pool
+	s_pool.~HandlePool<T, IntegerType, MaxHandles>();
+	new (&s_pool) HandlePool<T, IntegerType, MaxHandles>();
+}
 
 template <typename T, typename Tag, typename IntegerType, size_t MaxHandles>
 HandlePool<T, IntegerType, MaxHandles> Handle<T, Tag, IntegerType, MaxHandles>::s_pool;
