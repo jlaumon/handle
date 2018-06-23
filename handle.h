@@ -3,9 +3,11 @@
 // TODO add tests!
 // TODO make scalable implementation for freelist? also a free list isn't great because it reuses the same indices a lot and make the versions wrap around sooner
 
-#include "handle_config.h"
-
 #include <type_traits> // std::is_integral/std::is_unsigned/std::forward
+
+#ifdef HDL_USER_CONFIG
+#include HDL_USER_CONFIG
+#endif
 
 #ifndef HDL_ASSERT
 #include <assert.h>
