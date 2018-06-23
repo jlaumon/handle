@@ -87,7 +87,7 @@ public:
 	typedef IntegerType                            integer_type;
 	static const integer_type kInvalid = ~0;
 
-	HandlePool();
+	HandlePool() = default;
 	~HandlePool();
 	
 	HandlePool(const this_type&) = delete;
@@ -144,14 +144,9 @@ private:
 };
 
 template <typename T, typename IntegerType, size_t MaxHandles>
-HandlePool<T, IntegerType, MaxHandles>::HandlePool()
-{
-	m_nodeBuffer = (Node*)VirtualMemory::Reserve(MaxHandles * sizeof(Node));
-}
-
-template <typename T, typename IntegerType, size_t MaxHandles>
 HandlePool<T, IntegerType, MaxHandles>::~HandlePool()
 {
+	// Destroy all the allocated nodes
 	size_t nodeCount = getNodeBufferSize();
 	for (size_t i = 0; i < nodeCount; ++i)
 	{
@@ -160,7 +155,9 @@ HandlePool<T, IntegerType, MaxHandles>::~HandlePool()
 			node->m_value.~T();
 	}
 
-	VirtualMemory::Release(m_nodeBuffer);
+	// Release the reserved memory
+	if (m_nodeBuffer)
+		VirtualMemory::Release(m_nodeBuffer);
 }
 
 template <typename T, typename IntegerType, size_t MaxHandles>
@@ -207,6 +204,10 @@ HandlePool<T, IntegerType, MaxHandles>::create(Args&&... _args)
 		size_t nbPages = 1;
 		if (sizeof(Node) > pageSize)
 			nbPages = 1 + sizeof(Node) / pageSize;
+
+		// Reserve the node buffer if it wasn't done yet
+		if (!m_nodeBuffer)
+			m_nodeBuffer = (Node*)VirtualMemory::Reserve(MaxHandles * sizeof(Node));
 
 		// Increase capacity by commiting more pages
 		// Note: The memory allocated by VirtualMemory::Commit is zeroed, so m_version/m_allocated inside the nodes will automatically be initialized to 0
