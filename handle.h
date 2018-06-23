@@ -52,12 +52,13 @@ class Handle
 public:
 	typedef Handle<T, Tag, IntegerType, MaxHandles> this_type;
 	typedef IntegerType                             integer_type; ///< The type of the (unsigned) integer inside the handle.
+	typedef HandlePool<T, IntegerType, MaxHandles>  pool_type;
 
 	static const integer_type kInvalid = ~0;
 
 	template <class ... Args>
 	static this_type Create  (Args&&... _args)   { return s_pool.create(std::forward<Args>(_args)...); }
-	static void      Destroy (this_type _handle) { s_pool.destroy(_handle); }
+	static bool      Destroy (this_type _handle) { return s_pool.destroy(_handle); }
 	static T*        Get     (this_type _handle) { return s_pool.get(_handle);}
 
 	static size_t    Size    ()                  { return s_pool.size(); }
@@ -76,7 +77,7 @@ public:
 private:
 	integer_type m_intVal;
 	
-	static HandlePool<T, IntegerType, MaxHandles> s_pool;
+	static pool_type s_pool;
 };
 
 template <typename T, typename Tag, typename IntegerType, size_t MaxHandles>
@@ -113,7 +114,6 @@ public:
 	size_t       capacity() const { return MinSizeT(m_nodeBufferCapacityBytes / sizeof(Node), kMaxHandles); }
 	size_t       max_size() const { return kMaxHandles; }
 
-private:
 	static constexpr size_t MinSizeT(size_t _a, size_t _b) { return _a < _b ? _a : _b; } // Don't want to include <algorithm> just for std::min
 	static constexpr size_t CeilLog2(size_t _x)            { return _x < 2 ? 1 : 1 + CeilLog2(_x >> 1); }
 
@@ -130,11 +130,12 @@ private:
 	typedef typename std::conditional< kIndexNumBits <= 16, uint16_t,
 		typename std::conditional<kIndexNumBits <= 32, uint32_t, uint64_t>::type >::type index_type;
 
-	size_t getNodeBufferSize() const;
-
 	static index_type   GetIndex  (integer_type _handle);
 	static size_t       GetVersion(integer_type _handle);
 	static integer_type GetID     (index_type _index, size_t _version);
+
+private:
+	size_t getNodeBufferSize() const;
 
 	struct Node
 	{
