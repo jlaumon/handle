@@ -1,11 +1,12 @@
 #pragma once
 
-// This is an example of assert macro for Windows. You should replace it with your own.
+#include "catch/catch.hpp"
+
 #define HDL_ASSERT(condition, ...) \
 	if (!(condition)) { \
-		HandleAssertionFailed(#condition, __FILE__, __LINE__, ##__VA_ARGS__); \
-		__debugbreak(); \
+		auto str = FormatAssertString(#condition, ##__VA_ARGS__); \
+		FAIL(str); \
 	}
 
-void HandleAssertionFailed(const char* _condition, const char* _file, int _line);
-void HandleAssertionFailed(const char* _condition, const char* _file, int _line, const char* msg, ...);
+std::string FormatAssertString(const char* _condition);
+std::string FormatAssertString(const char* _condition, const char* _msg, ...);

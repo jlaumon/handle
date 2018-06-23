@@ -1,17 +1,15 @@
 #include "test_handle_config.h"
 #include <stdio.h>
 #include <stdarg.h>
+#include "catch/catch.hpp"
 
-void HandleAssertionFailed(const char* _condition, const char* _file, int _line)
+
+std::string FormatAssertString(const char* _condition)
 {
-	fprintf(stderr,
-		"Assertion failed: %s\n"
-		"Source: %s, line %d\n",
-		_condition, _file, _line
-	);
+	return std::string() + "HDL_ASSERT(" + _condition + ") failed";
 }
 
-void HandleAssertionFailed(const char* _condition, const char* _file, int _line, const char* _msg, ...)
+std::string FormatAssertString(const char* _condition, const char* _msg, ...)
 {
 	va_list args;
 	va_start(args, _msg);
@@ -22,10 +20,5 @@ void HandleAssertionFailed(const char* _condition, const char* _file, int _line,
 
 	va_end(args);
 
-	fprintf(stderr,
-		"Assertion failed: %s\n"
-		"Source: %s, line %d\n"
-		"Message: %s\n",
-		_condition, _file, _line, buffer
-	);
+	return std::string() + "HDL_ASSERT(" + _condition + ") failed; " + buffer;
 }
