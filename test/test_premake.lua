@@ -12,6 +12,7 @@ solution "Test"
 		{
 			"../*.h",
 			"../*.cpp",
+			"../*.natvis",
 			"**.h",
 			"**.hpp",
 			"**.cpp",
@@ -32,4 +33,9 @@ solution "Test"
 		{
 			"--break", -- break into debugger on failure
 			"--wait-for-keypress exit" -- wait for keypress to make sure we can read the output
+		}
+
+		vpaths
+		{
+			["*"] = "../*",
 		}
