@@ -119,9 +119,9 @@ public:
 
 	static const size_t kMaxHandles     = MaxHandles;
 	static const size_t kIndexNumBits   = CeilLog2(MaxHandles - 1);
-	static const size_t kIndexMask      = (1 << kIndexNumBits) - 1;
+	static const size_t kIndexMask      = ((size_t)1 << kIndexNumBits) - 1;
 	static const size_t kVersionNumBits = MinSizeT(sizeof(IntegerType) * 8 - kIndexNumBits, sizeof(size_t) * 8 - 1); // The version is stored in a size_t minus 1 bit below.
-	static const size_t kVersionMask    = (1 << kVersionNumBits) - 1;
+	static const size_t kVersionMask    = ((size_t)1 << kVersionNumBits) - 1;
 
 	static_assert(std::is_integral<IntegerType>::value && std::is_unsigned<IntegerType>::value, "IntegerType must be an unsigned integer type.");
 	static_assert(kIndexNumBits < sizeof(IntegerType) * 8, "There are not enough bits in IntegerType to store both index and version.");
