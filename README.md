@@ -1,3 +1,5 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/nntont83nb1uk9q2?svg=true)](https://ci.appveyor.com/project/jlaumon/handle)
+
 # Handle
 
 Handles (in general) are a way of referencing an object with an integer. It's a little bit like pointers, except the additional indirection
