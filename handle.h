@@ -55,7 +55,7 @@ public:
 	static const integer_type kInvalid = ~0;
 
 	template <class ... Args>
-	static this_type Create  (Args&&... _args)   { return s_pool.create(std::forward<Args>(_args)...); }
+	static this_type Create  (Args&&... _args)   { return this_type(s_pool.create(std::forward<Args>(_args)...)); }
 	static bool      Destroy (this_type _handle) { return s_pool.destroy(_handle); }
 	static T*        Get     (this_type _handle) { return s_pool.get(_handle);}
 
@@ -65,9 +65,9 @@ public:
 
 	static void      Reset   ();
 
-	Handle()                         : m_intVal(kInvalid) {}
-	Handle(const this_type& _handle) : m_intVal(_handle.m_intVal) {}
-	Handle(integer_type _intVal)     : m_intVal(_intVal) {}
+	Handle()                              : m_intVal(kInvalid) {}
+	Handle(const this_type& _handle)      : m_intVal(_handle.m_intVal) {}
+	explicit Handle(integer_type _intVal) : m_intVal(_intVal) {}
 	operator integer_type() const                  { return m_intVal; }
 	this_type& operator=(integer_type _intVal)     { m_intVal = _intVal; return *this; }
 	this_type& operator=(const this_type& _handle) { m_intVal = _handle.m_intVal; return *this; }
