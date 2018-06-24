@@ -256,6 +256,11 @@ HandlePool<T, IntegerType, MaxHandles>::destroy(integer_type _handle)
 	// Force the version to wrap around to make sure it doesn't use more than VersionNumBits (otherwise the equality test would fail).
 	node->m_version &= kVersionMask;
 
+	// Special case for the last index: it cannot use the max version, otherwise the handle would be equal to kInvalid.
+	// In this case, wrap around sooner.
+	if (GetID(index, node->m_version) == kInvalid)
+		node->m_version = 0;
+
 	HDL_ASSERT(node->m_allocated);
 	node->m_value.~T();
 	node->m_allocated = false;

@@ -110,3 +110,37 @@ TEST_CASE("basic tests", "[basics]")
 		}
 	}
 }
+
+TEST_CASE("wrapping test", "[basics]")
+{
+	using CharHandle = Handle<char, void, unsigned char, 16>;
+
+	CharHandle::Reset();
+
+	REQUIRE(CharHandle::Size() == 0);
+	REQUIRE(CharHandle::Capacity() == 0);
+
+	int numPossibleHandles = (1 << (sizeof(CharHandle::integer_type) * 8)) - 1; // -1 because one is reserved for kInvalid
+	
+	for (int i = 0; i < numPossibleHandles - 1; ++i)
+	{
+		auto h = CharHandle::Create('a');
+		REQUIRE(h != CharHandle::kInvalid);
+		CharHandle::Destroy(h);
+	}
+
+	auto lastHandle = CharHandle::Create('a');
+	REQUIRE(lastHandle != CharHandle::kInvalid);
+	REQUIRE(CharHandle::pool_type::GetVersion(lastHandle) > 0);
+
+	// If we were not careful, this handle would be equal to kInvalid (max index & max version)
+	// but the version should automatically wrap sooner to avoid this case.
+	auto earlyWrapHandle = CharHandle::Create('a');
+	REQUIRE(earlyWrapHandle != CharHandle::kInvalid);
+	REQUIRE(CharHandle::pool_type::GetVersion(earlyWrapHandle) == 0);
+
+	// This one should be the one where the normal wrapping happens.
+	auto wrappingHandle = CharHandle::Create('a');
+	REQUIRE(wrappingHandle != CharHandle::kInvalid);
+	REQUIRE(wrappingHandle == 0);
+}
