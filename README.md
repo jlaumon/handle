@@ -45,6 +45,8 @@ Now, that's also pretty much what all the other handle implementations do. Here 
 
 The provided **natvis** files mean that - if you use Visual Studio - you can see the value behind a handle at anytime in the debugger.
 
+![natvis0](https://user-images.githubusercontent.com/2878094/41821247-fba2833a-77dd-11e8-993c-e883f7e146bf.PNG)
+
 ### It's resizable AND thread-safe
 
 One very common limitation of this kind of handle system, is that it needs to allocate the array where the objects
