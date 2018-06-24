@@ -1,7 +1,5 @@
 #pragma once
 
-// TODO add tests!
-// TODO make scalable implementation for freelist? also a free list isn't great because it reuses the same indices a lot and make the versions wrap around sooner
 // TODO add reserve
 // TODO add doc
 
@@ -16,9 +14,9 @@
 #define HDL_ASSERT(condition, ...) assert(condition)
 #endif
 
-#ifndef HDL_VECTOR
-#include <vector>
-#define HDL_VECTOR std::vector
+#ifndef HDL_DEQUE
+#include <deque> // VC++ has a very bad deque implementation, prefer switching to eastl::deque or a custom FIFO that does not allocate each elements separately
+#define HDL_DEQUE std::deque
 #endif
 
 #ifndef HDL_MUTEX
@@ -151,7 +149,7 @@ private:
 	size_t                  m_nodeBufferSizeBytes     = 0;
 	size_t                  m_nodeBufferCapacityBytes = 0;
 	size_t                  m_handleCount             = 0;
-	HDL_VECTOR<index_type>  m_freeIndices;
+	HDL_DEQUE<index_type>   m_freeIndices;
 	HDL_MUTEX               m_mutex;
 };
 
@@ -196,10 +194,10 @@ HandlePool<T, IntegerType, MaxHandles>::create(Args&&... _args)
 		m_nodeBufferSizeBytes += sizeof(Node);
 	}
 	// Otherwise look for free indices
-	else if (m_freeIndices.size())
+	else if (!m_freeIndices.empty())
 	{
-		index = m_freeIndices.back();
-		m_freeIndices.pop_back();
+		index = m_freeIndices.front();
+		m_freeIndices.pop_front();
 	}
 	// Last option, grow the node buffer
 	else
