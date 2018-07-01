@@ -206,7 +206,6 @@ HandlePool<T, IntegerType, MaxHandles>::create(Args&&... _args)
 		                                                             // or we should have reached kMaxHandles and returned kInvalid
 
 		index = (index_type)getNodeBufferSize();
-		m_nodeBufferSizeBytes += sizeof(Node);
 
 		// Check how many pages we need to store at least one more node
 		// FIXME! Not the best idea if nodes are very big, make alloc size customizable?
@@ -223,6 +222,7 @@ HandlePool<T, IntegerType, MaxHandles>::create(Args&&... _args)
 		// Increase capacity by commiting more pages
 		// Note: The memory allocated by VirtualMemory::Commit is zeroed, so m_version/m_allocated inside the nodes will automatically be initialized to 0
 		VirtualMemory::Commit((char*)m_nodeBuffer + m_nodeBufferCapacityBytes, nbPages * pageSize);
+		m_nodeBufferSizeBytes += sizeof(Node);
 		m_nodeBufferCapacityBytes += nbPages * pageSize;
 	}
 
