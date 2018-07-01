@@ -1,0 +1,1 @@
+..\premake5 --file=example_premake.lua vs2017

@@ -4,4 +4,6 @@
 .vs
 test/bin
 test/obj
+example/bin
+example/obj
 enc_temp_folder
