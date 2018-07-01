@@ -24,23 +24,6 @@
 #define HDL_MUTEX std::mutex
 #endif
 
-namespace VirtualMemory
-{
-	size_t GetPageSize();
-	/// Reserves a memory area of at least _size bytes. The memory needs to be committed before being used.
-	void*  Reserve (size_t _size);
-	/// Releases reserved memory. Also decommits any part that was committed.
-	/// _address and _size must match the values returned by/passed to the Reserve call that reserved this memory area.
-	void   Release (void* _address, size_t _size);
-	/// Commits reserved memory. All newly allocated pages will contain zeros.
-	/// All the pages containing at least one byte in the range _address, _address + _size will be committed.
-	/// @returns Commit success.
-	bool   Commit  (void* _address, size_t _size);
-	/// Frees committed memory. 
-	/// All the pages containing at least one byte in the range _address, _address + _size will be decommitted.
-	void   Decommit(void* _address, size_t _size);
-}
-
 template <typename, typename, size_t> class HandlePool;
 
 template <typename T, typename Tag = void,
@@ -79,6 +62,26 @@ private:
 	
 	static pool_type s_pool;
 };
+
+namespace HDL
+{
+namespace VirtualMemory
+{
+	size_t GetPageSize();
+	/// Reserves a memory area of at least _size bytes. The memory needs to be committed before being used.
+	void*  Reserve (size_t _size);
+	/// Releases reserved memory. Also decommits any part that was committed.
+	/// _address and _size must match the values returned by/passed to the Reserve call that reserved this memory area.
+	void   Release (void* _address, size_t _size);
+	/// Commits reserved memory. All newly allocated pages will contain zeros.
+	/// All the pages containing at least one byte in the range _address, _address + _size will be committed.
+	/// @returns Commit success.
+	bool   Commit  (void* _address, size_t _size);
+	/// Frees committed memory. 
+	/// All the pages containing at least one byte in the range _address, _address + _size will be decommitted.
+	void   Decommit(void* _address, size_t _size);
+}
+}
 
 template <typename T, typename Tag, typename IntegerType, size_t MaxHandles>
 void Handle<T, Tag, IntegerType, MaxHandles>::Reset()
@@ -177,7 +180,7 @@ HandlePool<T, IntegerType, MaxHandles>::~HandlePool()
 
 	// Release the reserved memory
 	if (m_nodeBuffer)
-		VirtualMemory::Release(m_nodeBuffer, kMaxHandles * sizeof(Node));
+		HDL::VirtualMemory::Release(m_nodeBuffer, kMaxHandles * sizeof(Node));
 }
 
 template <typename T, typename IntegerType, size_t MaxHandles>
@@ -218,18 +221,18 @@ HandlePool<T, IntegerType, MaxHandles>::create(Args&&... _args)
 			// Check how many pages we need to store at least one more node
 			// FIXME! Not the best idea if nodes are very big, make alloc size customizable?
 			size_t neededBytes = m_nodeBufferSizeBytes + sizeof(Node) - m_nodeBufferCapacityBytes;
-			auto pageSize = VirtualMemory::GetPageSize();
+			auto pageSize = HDL::VirtualMemory::GetPageSize();
 			size_t nbPages = 1;
 			if (neededBytes > pageSize)
 				nbPages = 1 + neededBytes / pageSize;
 
 			// Reserve the node buffer if it wasn't done yet
 			if (!m_nodeBuffer)
-				m_nodeBuffer = (Node*)VirtualMemory::Reserve(kMaxHandles * sizeof(Node));
+				m_nodeBuffer = (Node*)HDL::VirtualMemory::Reserve(kMaxHandles * sizeof(Node));
 
 			// Increase capacity by commiting more pages
 			// Note: The memory allocated by VirtualMemory::Commit is zeroed, so m_version/m_allocated inside the nodes will automatically be initialized to 0
-			if (!VirtualMemory::Commit((char*)m_nodeBuffer + m_nodeBufferCapacityBytes, nbPages * pageSize))
+			if (!HDL::VirtualMemory::Commit((char*)m_nodeBuffer + m_nodeBufferCapacityBytes, nbPages * pageSize))
 			{
 				// Allocation failed. (Out of memory?)
 				return kInvalid;

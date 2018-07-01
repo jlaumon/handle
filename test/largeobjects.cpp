@@ -21,7 +21,7 @@ struct LargeObject
 
 TEST_CASE("objects that are bigger than a memory page", "[largeobjects]")
 {
-	REQUIRE(sizeof(LargeObject) > VirtualMemory::GetPageSize());
+	REQUIRE(sizeof(LargeObject) > HDL::VirtualMemory::GetPageSize());
 	REQUIRE(sizeof(LargeObject) == sizeof(LargeObject::data)); // no padding
 
 	using LOHandle = Handle<LargeObject, void, size_t, 10>;

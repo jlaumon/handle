@@ -4,6 +4,8 @@
 #define NOMINMAX
 #include "windows.h"
 
+namespace HDL
+{
 namespace VirtualMemory
 {
 	static std::string GetFormattedErrorString(DWORD _errorCode)
@@ -93,4 +95,4 @@ namespace VirtualMemory
 		HDL_ASSERT(success, GetFormattedErrorString(GetLastError()).c_str());
 	}
 }
-
+}
