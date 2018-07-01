@@ -135,6 +135,14 @@ public:
 	static integer_type GetID     (index_type _index, size_t _version);
 
 private:
+	struct LockGuard
+	{
+		HDL_MUTEX& m_mutex;
+		LockGuard(HDL_MUTEX& _mutex) : m_mutex(_mutex) { m_mutex.lock(); }
+		~LockGuard() { m_mutex.unlock(); }
+		LockGuard& operator=(LockGuard) = delete;
+	};
+
 	size_t getNodeBufferSize() const;
 
 	struct Node
@@ -177,64 +185,62 @@ template <class ... Args>
 IntegerType
 HandlePool<T, IntegerType, MaxHandles>::create(Args&&... _args)
 {
-	m_mutex.lock();
-
-	if (m_handleCount == kMaxHandles)
-	{
-		m_mutex.unlock();
-		return kInvalid;
-	}
-
 	index_type index;
 
-	// If there is enough space in the node buffer, add a node
-	// Note: use the rest of the buffer before looking for free indices to delay the wrapping of the versions as much as possible
-	if (m_nodeBufferSizeBytes < kNodeBufferMaxSizeBytes
-		&& (m_nodeBufferSizeBytes + sizeof(Node)) <= m_nodeBufferCapacityBytes)
 	{
-		index = (index_type)getNodeBufferSize();
-		m_nodeBufferSizeBytes += sizeof(Node);
-	}
-	// Otherwise look for free indices
-	else if (!m_freeIndices.empty())
-	{
-		index = m_freeIndices.front();
-		m_freeIndices.pop_front();
-	}
-	// Last option, grow the node buffer
-	else
-	{
-		HDL_ASSERT(m_nodeBufferSizeBytes < kNodeBufferMaxSizeBytes); // At this point, either the freelist should not be empty, 
-		                                                             // or we should have reached kMaxHandles and returned kInvalid
+		LockGuard guard(m_mutex);
 
-		index = (index_type)getNodeBufferSize();
-
-		// Check how many pages we need to store at least one more node
-		// FIXME! Not the best idea if nodes are very big, make alloc size customizable?
-		size_t neededBytes = m_nodeBufferSizeBytes + sizeof(Node) - m_nodeBufferCapacityBytes;
-		auto pageSize = VirtualMemory::GetPageSize();
-		size_t nbPages = 1;
-		if (neededBytes > pageSize)
-			nbPages = 1 + neededBytes / pageSize;
-
-		// Reserve the node buffer if it wasn't done yet
-		if (!m_nodeBuffer)
-			m_nodeBuffer = (Node*)VirtualMemory::Reserve(kMaxHandles * sizeof(Node));
-
-		// Increase capacity by commiting more pages
-		// Note: The memory allocated by VirtualMemory::Commit is zeroed, so m_version/m_allocated inside the nodes will automatically be initialized to 0
-		if (!VirtualMemory::Commit((char*)m_nodeBuffer + m_nodeBufferCapacityBytes, nbPages * pageSize))
-		{
-			// Allocation failed. (Out of memory?)
-			m_mutex.unlock();
+		if (m_handleCount == kMaxHandles)
 			return kInvalid;
-		}
-		m_nodeBufferSizeBytes += sizeof(Node);
-		m_nodeBufferCapacityBytes += nbPages * pageSize;
-	}
 
-	m_handleCount++;
-	m_mutex.unlock();
+		// If there is enough space in the node buffer, add a node
+		// Note: use the rest of the buffer before looking for free indices to delay the wrapping of the versions as much as possible
+		if (m_nodeBufferSizeBytes < kNodeBufferMaxSizeBytes
+			&& (m_nodeBufferSizeBytes + sizeof(Node)) <= m_nodeBufferCapacityBytes)
+		{
+			index = (index_type)getNodeBufferSize();
+			m_nodeBufferSizeBytes += sizeof(Node);
+		}
+		// Otherwise look for free indices
+		else if (!m_freeIndices.empty())
+		{
+			index = m_freeIndices.front();
+			m_freeIndices.pop_front();
+		}
+		// Last option, grow the node buffer
+		else
+		{
+			HDL_ASSERT(m_nodeBufferSizeBytes < kNodeBufferMaxSizeBytes); // At this point, either the freelist should not be empty, 
+																		 // or we should have reached kMaxHandles and returned kInvalid
+
+			index = (index_type)getNodeBufferSize();
+
+			// Check how many pages we need to store at least one more node
+			// FIXME! Not the best idea if nodes are very big, make alloc size customizable?
+			size_t neededBytes = m_nodeBufferSizeBytes + sizeof(Node) - m_nodeBufferCapacityBytes;
+			auto pageSize = VirtualMemory::GetPageSize();
+			size_t nbPages = 1;
+			if (neededBytes > pageSize)
+				nbPages = 1 + neededBytes / pageSize;
+
+			// Reserve the node buffer if it wasn't done yet
+			if (!m_nodeBuffer)
+				m_nodeBuffer = (Node*)VirtualMemory::Reserve(kMaxHandles * sizeof(Node));
+
+			// Increase capacity by commiting more pages
+			// Note: The memory allocated by VirtualMemory::Commit is zeroed, so m_version/m_allocated inside the nodes will automatically be initialized to 0
+			if (!VirtualMemory::Commit((char*)m_nodeBuffer + m_nodeBufferCapacityBytes, nbPages * pageSize))
+			{
+				// Allocation failed. (Out of memory?)
+				return kInvalid;
+			}
+			m_nodeBufferSizeBytes += sizeof(Node);
+			m_nodeBufferCapacityBytes += nbPages * pageSize;
+		}
+
+		m_handleCount++;
+
+	} // LockGuard end
 
 	auto node = m_nodeBuffer + index;
 	node->m_allocated = true;
@@ -272,10 +278,11 @@ HandlePool<T, IntegerType, MaxHandles>::destroy(integer_type _handle)
 	node->m_value.~T();
 	node->m_allocated = false;
 
-	m_mutex.lock();
-	m_handleCount--;
-	m_freeIndices.push_back(index);
-	m_mutex.unlock();
+	{
+		LockGuard guard(m_mutex);
+		m_handleCount--;
+		m_freeIndices.push_back(index);
+	}
 
 	return true;
 }
