@@ -56,8 +56,10 @@ namespace VirtualMemory
 		return address;
 	}
 
-	void Release(void* _address)
+	void Release(void* _address, size_t _size)
 	{
+		(void)_size; // When using MEM_RELEASE, the passed size must be 0. The entire region that was reserved will be released.
+
 		auto success = VirtualFree(
 			_address,
 			0,

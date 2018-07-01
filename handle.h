@@ -30,7 +30,8 @@ namespace VirtualMemory
 	/// Reserves a memory area of at least _size bytes. The memory needs to be committed before being used.
 	void*  Reserve (size_t _size);
 	/// Releases reserved memory. Also decommits any part that was committed.
-	void   Release (void* _address);
+	/// _address and _size must match the values returned by/passed to the Reserve call that reserved this memory area.
+	void   Release (void* _address, size_t _size);
 	/// Commits reserved memory. All newly allocated pages will contain zeros.
 	/// All the pages containing at least one byte in the range _address, _address + _size will be committed.
 	void   Commit  (void* _address, size_t _size);
@@ -167,7 +168,7 @@ HandlePool<T, IntegerType, MaxHandles>::~HandlePool()
 
 	// Release the reserved memory
 	if (m_nodeBuffer)
-		VirtualMemory::Release(m_nodeBuffer);
+		VirtualMemory::Release(m_nodeBuffer, kMaxHandles * sizeof(Node));
 }
 
 template <typename T, typename IntegerType, size_t MaxHandles>
