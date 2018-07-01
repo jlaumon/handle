@@ -5,7 +5,7 @@
 
 struct LargeObject
 {
-	char data[10000];
+	char data[10000-8];
 
 	LargeObject(char v)
 	{
