@@ -223,7 +223,12 @@ HandlePool<T, IntegerType, MaxHandles>::create(Args&&... _args)
 
 		// Increase capacity by commiting more pages
 		// Note: The memory allocated by VirtualMemory::Commit is zeroed, so m_version/m_allocated inside the nodes will automatically be initialized to 0
-		VirtualMemory::Commit((char*)m_nodeBuffer + m_nodeBufferCapacityBytes, nbPages * pageSize);
+		if (!VirtualMemory::Commit((char*)m_nodeBuffer + m_nodeBufferCapacityBytes, nbPages * pageSize))
+		{
+			// Allocation failed. (Out of memory?)
+			m_mutex.unlock();
+			return kInvalid;
+		}
 		m_nodeBufferSizeBytes += sizeof(Node);
 		m_nodeBufferCapacityBytes += nbPages * pageSize;
 	}
