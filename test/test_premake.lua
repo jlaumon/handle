@@ -1,10 +1,10 @@
-solution "Test"
+solution "HandleTest"
 	
 	platforms { "x64" }
 	configurations { "Debug", "Release" }
-	startproject "Test"
+	startproject "HandleTest"
 
-	project "Test"
+	project "HandleTest"
 
 		kind "ConsoleApp"
 	
