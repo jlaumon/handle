@@ -1,8 +1,5 @@
 #pragma once
 
-// TODO add reserve
-// TODO add doc
-
 #include <type_traits> // std::is_integral/std::is_unsigned/std::forward
 
 #ifdef HDL_USER_CONFIG
@@ -56,6 +53,10 @@ public:
 	static size_t    Capacity()                  { return s_pool.capacity(); }
 	/// Returns the maximum possible number of elements/handles (ie. MaxHandles).
 	static size_t    MaxSize ()                  { return s_pool.max_size(); }
+
+	/// Reserves storage for at least `_newCap` number of elements/handles.
+	/// @returns The reserve operation success (can fail if _newCap is greater than MaxHandles or if out-of-memory).
+	static bool      Reserve (size_t _newCap)    { return s_pool.reserve(_newCap); }
 
 	/// Destoys all the elements, release all the memory.
 	static void      Reset   ();
@@ -127,6 +128,8 @@ public:
 	size_t       capacity() const { return MinSizeT(m_nodeBufferCapacityBytes / sizeof(Node), kMaxHandles); }
 	size_t       max_size() const { return kMaxHandles; }
 
+	bool         reserve (size_t _newCap);
+
 	static constexpr size_t MinSizeT(size_t _a, size_t _b) { return _a < _b ? _a : _b; } // Don't want to include <algorithm> just for std::min
 	static constexpr size_t CeilLog2(size_t _x)            { return _x < 2 ? 1 : 1 + CeilLog2(_x >> 1); }
 
@@ -157,6 +160,7 @@ private:
 	};
 
 	size_t getNodeBufferSize() const;
+	bool   reserveNoLock(size_t _newCap);
 
 	struct Node
 	{
@@ -226,29 +230,17 @@ HandlePool<T, IntegerType, MaxHandles>::create(Args&&... _args)
 			HDL_ASSERT(m_nodeBufferSizeBytes < kNodeBufferMaxSizeBytes); // At this point, either the freelist should not be empty, 
 																		 // or we should have reached kMaxHandles and returned kInvalid
 
-			index = (index_type)getNodeBufferSize();
-
-			// Check how many pages we need to store at least one more node
+			// Increase capacity to store at least one more node.
 			// FIXME! Not the best idea if nodes are very big, make alloc size customizable?
-			size_t neededBytes = m_nodeBufferSizeBytes + sizeof(Node) - m_nodeBufferCapacityBytes;
-			auto pageSize = HDL::VirtualMemory::GetPageSize();
-			size_t nbPages = 1;
-			if (neededBytes > pageSize)
-				nbPages = 1 + neededBytes / pageSize;
-
-			// Reserve the node buffer if it wasn't done yet
-			if (!m_nodeBuffer)
-				m_nodeBuffer = (Node*)HDL::VirtualMemory::Reserve(kMaxHandles * sizeof(Node));
-
-			// Increase capacity by commiting more pages
-			// Note: The memory allocated by VirtualMemory::Commit is zeroed, so m_version/m_allocated inside the nodes will automatically be initialized to 0
-			if (!HDL::VirtualMemory::Commit((char*)m_nodeBuffer + m_nodeBufferCapacityBytes, nbPages * pageSize))
+			auto cap = capacity();
+			if (!reserveNoLock(cap + 1))
 			{
-				// Allocation failed. (Out of memory?)
+				// Reserve failed, probably out-of-memory.
 				return kInvalid;
 			}
+
+			index = (index_type)getNodeBufferSize();
 			m_nodeBufferSizeBytes += sizeof(Node);
-			m_nodeBufferCapacityBytes += nbPages * pageSize;
 		}
 
 		m_handleCount++;
@@ -318,6 +310,51 @@ HandlePool<T, IntegerType, MaxHandles>::get(integer_type _handle)
 
 	HDL_ASSERT(node->m_allocated);
 	return &node->m_value;
+}
+
+template<typename T, typename IntegerType, size_t MaxHandles>
+bool
+HandlePool<T, IntegerType, MaxHandles>::reserve(size_t _newCap)
+{
+	LockGuard guard(m_mutex);
+	return reserveNoLock(_newCap);
+}
+
+template<typename T, typename IntegerType, size_t MaxHandles>
+bool
+HandlePool<T, IntegerType, MaxHandles>::reserveNoLock(size_t _newCap)
+{
+	if (_newCap > max_size())
+		return false;
+
+	auto currentCap = capacity();
+
+	if (_newCap <= currentCap)
+		return true; // Nothing to do, we already have enough capacity
+
+	// Check how many pages we need to store the additional nodes
+	size_t freeBytes = m_nodeBufferCapacityBytes - m_nodeBufferSizeBytes;
+	size_t neededBytes = (_newCap - currentCap) * sizeof(Node) - freeBytes;
+	auto pageSize = HDL::VirtualMemory::GetPageSize();
+	size_t nbPages = 1;
+	if (neededBytes > pageSize)
+		nbPages = 1 + neededBytes / pageSize;
+
+	// Reserve the node buffer if it wasn't done yet
+	if (!m_nodeBuffer)
+		m_nodeBuffer = (Node*)HDL::VirtualMemory::Reserve(kMaxHandles * sizeof(Node));
+
+	// Increase capacity by commiting more pages
+	// Note: The memory allocated by VirtualMemory::Commit is zeroed, so m_version/m_allocated inside the nodes will automatically be initialized to 0
+	if (!HDL::VirtualMemory::Commit((char*)m_nodeBuffer + m_nodeBufferCapacityBytes, nbPages * pageSize))
+	{
+		// Allocation failed. (Out of memory?)
+		return false;
+	}
+
+	m_nodeBufferCapacityBytes += nbPages * pageSize;
+
+	return true;
 }
 
 template<typename T, typename IntegerType, size_t MaxHandles>
