@@ -34,7 +34,8 @@ namespace VirtualMemory
 	void   Release (void* _address, size_t _size);
 	/// Commits reserved memory. All newly allocated pages will contain zeros.
 	/// All the pages containing at least one byte in the range _address, _address + _size will be committed.
-	void   Commit  (void* _address, size_t _size);
+	/// @returns Commit success.
+	bool   Commit  (void* _address, size_t _size);
 	/// Frees committed memory. 
 	/// All the pages containing at least one byte in the range _address, _address + _size will be decommitted.
 	void   Decommit(void* _address, size_t _size);

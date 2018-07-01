@@ -69,7 +69,7 @@ namespace VirtualMemory
 		HDL_ASSERT(success, GetFormattedErrorString(GetLastError()).c_str());
 	}
 
-	void Commit(void* _address, size_t _size)
+	bool Commit(void* _address, size_t _size)
 	{
 		auto address = VirtualAlloc(
 			_address,
@@ -79,6 +79,7 @@ namespace VirtualMemory
 		);
 
 		HDL_ASSERT(address != nullptr, GetFormattedErrorString(GetLastError()).c_str());
+		return address != nullptr;
 	}
 
 	void Decommit(void* _address, size_t _size)
