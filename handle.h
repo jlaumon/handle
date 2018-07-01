@@ -35,19 +35,29 @@ class Handle
 public:
 	typedef Handle<T, Tag, IntegerType, MaxHandles> this_type;
 	typedef IntegerType                             integer_type; ///< The type of the (unsigned) integer inside the handle.
-	typedef HandlePool<T, IntegerType, MaxHandles>  pool_type;
+	typedef HandlePool<T, IntegerType, MaxHandles>  pool_type;    ///< The type of the pool managing the elements/handles.
 
-	static const integer_type kInvalid = ~0;
+	static const integer_type kInvalid = pool_type::kInvalid;     ///< Special value reserved for indicating an invalid handle.
 
+	/// Creates an instance of T and a handle for it. Parameters are forwarded to the element's constructor.
+	/// @returns The handle pointing to the created element, or kInvalid if the allocation failed (MaxHandles reached or out-of-memory).
 	template <class ... Args>
 	static this_type Create  (Args&&... _args)   { return this_type(s_pool.create(std::forward<Args>(_args)...)); }
+	/// Destroys this handle and the pointed element. 
+	/// @returns True if the destruction happened, or false if the handle was not valid (eg. already destroyed).
 	static bool      Destroy (this_type _handle) { return s_pool.destroy(_handle); }
-	static T*        Get     (this_type _handle) { return s_pool.get(_handle);}
+	/// Gets the element pointed by the handle.
+	/// @returns The pointer to the element, or nullptr if the handle was not valid.
+	static T*        Get     (this_type _handle) { return s_pool.get(_handle); }
 
+	/// Returns the current number of elements/handles.
 	static size_t    Size    ()                  { return s_pool.size(); }
+	/// Returns the number of elements/handles that can be held in the currently allocated storage.
 	static size_t    Capacity()                  { return s_pool.capacity(); }
+	/// Returns the maximum possible number of elements/handles (ie. MaxHandles).
 	static size_t    MaxSize ()                  { return s_pool.max_size(); }
 
+	/// Destoys all the elements, release all the memory.
 	static void      Reset   ();
 
 	Handle()                              : m_intVal(kInvalid) {}
