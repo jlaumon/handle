@@ -39,7 +39,7 @@ void UnqueueAndProcessEntity(EntityID id)
 
 Each handle is made of a number of bits used as an index in an array (that's where the referenced object is), 
 and some bits acting as a version number. If the version number in the handle matches the one in the array at the same index, the object is valid.
-Otherwise it means the object has been destroyed.
+Otherwise it means the object has been destroyed. This technique is also sometimes called generational indices (where the "generation" is the version). 
 
 Now, that's also pretty much what all the other handle implementations do. Here are the advantages of this one:
 
