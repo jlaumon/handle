@@ -35,6 +35,8 @@ void ProcessEntity(EntityID id)
     }
 }
 ```
+A more complete example is available [in the example folder](https://github.com/jlaumon/handle/blob/master/example/main.cpp).
+
 ## Under the hood
 
 Each handle is made of a number of bits used as an index in an array (that's where the referenced object is), 
