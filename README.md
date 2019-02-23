@@ -22,7 +22,7 @@ void SpawnEntity(const SpawnData& data)
 ...
 
 // Executed potentially much later
-void UnqueueAndProcessEntity(EntityID id)
+void ProcessEntity(EntityID id)
 {
     if (Entity* entity = EntityID::Get(id))
     {
